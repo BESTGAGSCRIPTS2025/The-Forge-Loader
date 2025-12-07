@@ -70,19 +70,14 @@ local Config = {
 }
 
 -- ================================================================
--- BASE64 DECODER
+-- BASE64 DECODER (Proven Implementation)
 -- ================================================================
-local b64chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
-local b64lookup = {}
-for i = 1, #b64chars do
-    b64lookup[b64chars:sub(i,i)] = i - 1
-end
-
+local b='ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'
 local function base64Decode(data)
-    data = data:gsub('[^'..b64chars..'=]', '')
+    data = string.gsub(data, '[^'..b..'=]', '')
     return (data:gsub('.', function(x)
         if (x == '=') then return '' end
-        local r,f='',(b64lookup[x] or 0)
+        local r,f='',(b:find(x)-1)
         for i=6,1,-1 do r=r..(f%2^i-f%2^(i-1)>0 and '1' or '0') end
         return r;
     end):gsub('%d%d%d?%d?%d?%d?%d?%d?', function(x)
@@ -217,48 +212,68 @@ local REPO_BASE = "https://raw.githubusercontent.com/DJB5001/The-Forge-Loader/ma
 
 local function httpGet(url)
     local ok, res = pcall(function() return game:HttpGet(url, true) end)
+    if not ok then
+        warn("[THE FORGE] HTTP GET failed for: " .. url)
+        warn("[THE FORGE] Error: " .. tostring(res))
+    end
     return ok and res or nil
 end
 
 local function loadEncodedModule(name)
     print("[THE FORGE] Loading " .. name .. "...")
     
-    local encoded = httpGet(REPO_BASE .. name .. ".b64")
-    if not encoded then 
-        warn("[THE FORGE] Failed to load " .. name)
+    local url = REPO_BASE .. name .. ".b64"
+    local encoded = httpGet(url)
+    if not encoded or encoded == "" then 
+        warn("[THE FORGE] Failed to download " .. name)
         return nil
     end
     
+    print("[THE FORGE] Downloaded: " .. #encoded .. " bytes (base64)")
     print("[THE FORGE] Decoding...")
+    
     local ok, decoded = pcall(base64Decode, encoded)
-    if not ok or not decoded then
-        warn("[THE FORGE] Failed to decode " .. name)
+    if not ok then
+        warn("[THE FORGE] Decode error: " .. tostring(decoded))
         return nil
     end
+    
+    if not decoded or #decoded == 0 then
+        warn("[THE FORGE] Decode returned empty string")
+        return nil
+    end
+    
+    print("[THE FORGE] Decoded: " .. #decoded .. " bytes")
+    print("[THE FORGE] Compiling...")
     
     local ok2, chunk = pcall(loadstring, decoded)
     if not ok2 or not chunk then 
-        warn("[THE FORGE] Failed to compile " .. name)
+        warn("[THE FORGE] Compile error: " .. tostring(chunk))
         return nil
     end
     
+    print("[THE FORGE] Executing...")
     local ok3, module = pcall(chunk)
     if not ok3 then 
-        warn("[THE FORGE] Failed to execute " .. name)
+        warn("[THE FORGE] Execute error: " .. tostring(module))
         return nil
     end
     
-    print("[THE FORGE] ✅ " .. name .. " loaded")
+    print("[THE FORGE] ✅ " .. name .. " loaded successfully")
     return module
 end
 
 print("[DJ HUB] Loading The Forge Script...")
 
 local Utils = loadEncodedModule("dj_utils.lua")
-if not Utils then warn("[DJ HUB] Utils failed to load") end
+if not Utils then 
+    warn("[DJ HUB] ❌ Utils failed to load")
+else
+    print("[DJ HUB] ✅ Utils loaded")
+end
 
 local Overlay = loadEncodedModule("dj_overlay.lua")
-if Overlay then
+if Overlay and Overlay.showDiscordProgress then
     Overlay.showDiscordProgress(
         "Loading DJ HUB " .. VERSION .. "\nGame: " .. GAME_NAME,
         6
@@ -266,10 +281,16 @@ if Overlay then
 end
 
 local UIBase = loadEncodedModule("dj_ui_base.lua")
-if not UIBase then error("[DJ HUB] Failed to load UI base") end
+if not UIBase then 
+    error("[DJ HUB] ❌ Failed to load UI base") 
+    return
+end
 
 local Rayfield, Window = UIBase.createWindow()
-if not Rayfield or not Window then error("[DJ HUB] Failed to create window") end
+if not Rayfield or not Window then 
+    error("[DJ HUB] ❌ Failed to create window") 
+    return
+end
 
 local KeyTabReference = nil
 local keyVerified = false
@@ -313,7 +334,7 @@ local function onKeyVerified()
         Duration = 6
     })
     
-    print("[DJ HUB] The Forge Script loaded successfully!")
+    print("[DJ HUB] ✅ The Forge Script loaded successfully!")
 end
 
 if NO_KEY_ACTIVE then
