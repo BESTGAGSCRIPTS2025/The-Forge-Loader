@@ -10,10 +10,10 @@ import requests
 import time
 
 # GitHub Configuration
-GITHUB_TOKEN = "DEIN_TOKEN_HIER"  # 🔑 Füge deinen Token ein!
+GITHUB_TOKEN = "DEIN_TOKEN_HIER"  
 REPO_OWNER = "DJB5001"
-SOURCE_REPO = "The-Forge"  # Private repo
-TARGET_REPO = "The-Forge-Loader"  # Public repo
+SOURCE_REPO = "The-Forge"  
+TARGET_REPO = "The-Forge-Loader"  
 BRANCH = "main"
 
 # Alle 13 Dateien
