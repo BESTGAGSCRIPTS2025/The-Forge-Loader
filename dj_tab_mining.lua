@@ -1,0 +1,1 @@
+-- Mining tab content will be fetched
