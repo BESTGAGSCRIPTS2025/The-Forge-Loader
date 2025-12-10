@@ -1,1 +1,0 @@
--- Monster tab content will be fetched
